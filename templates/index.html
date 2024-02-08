@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Darts App</title>
+    <style>
+        /* Add some basic styling for better presentation */
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+        }
+        button {
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Darts App</h1>
+    <form id="throwForm">
+        <label for="playerName">Player Name:</label>
+        <input type="text" id="playerName" name="playerName" required>
+        <label for="score">Score:</label>
+        <input type="number" id="score" name="score" required>
+        <button type="button" onclick="recordThrow()">Record Throw</button>
+    </form>
+
+    <script>
+        function recordThrow() {
+            const playerName = document.getElementById('playerName').value;
+            const score = document.getElementById('score').value;
+
+            fetch('/record_throw', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    playerName: playerName,
+                    score: score,
+                }),
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log(data);
+                alert('Throw recorded successfully!');
+                // You can add more logic here if needed
+            })
+            .catch((error) => {
+                console.error('Error:', error);
+                alert('Error recording throw. Please try again.');
+            });
+        }
+    </script>
+</body>
+</html>
