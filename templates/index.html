@@ -27,13 +27,15 @@
     <button onclick="startLeg()">Start Leg</button>
 
     <h2>Start Match</h2>
+    <label for="matchId">Match ID:</label>
+    <input type="text" id="matchId" name="matchId"><br><br>
     <label for="matchPlayer1Name">Player 1 Name:</label>
     <input type="text" id="matchPlayer1Name" name="matchPlayer1Name"><br><br>
     <label for="matchPlayer2Name">Player 2 Name:</label>
     <input type="text" id="matchPlayer2Name" name="matchPlayer2Name"><br><br>
     <label for="matchType">Match Type:</label>
     <input type="text" id="matchType" name="matchType"><br><br>
-    <button onclick="startMatch()">Start Match</button>
+    <button onclick="start_match()">Start Match</button>
 
     <script>
         async function addThrow() {
@@ -69,11 +71,12 @@
             alert(data.message);
         }
 
-        async function startMatch() {
+        async function start_match() {
+            const matchId = document.getElementById("matchId").value;
             const matchPlayer1Name = document.getElementById("matchPlayer1Name").value;
             const matchPlayer2Name = document.getElementById("matchPlayer2Name").value;
             const matchType = document.getElementById("matchType").value;
-            const response = await fetch(`/match/${matchPlayer1Name}/${matchPlayer2Name}/${matchType}`, {
+            const response = await fetch(`/match/${matchId}/${matchPlayer1Name}/${matchPlayer2Name}/${matchType}`, {
                 method: 'POST'
             });
             const data = await response.json();
@@ -82,3 +85,33 @@
     </script>
 </body>
 </html>
+
+async function start_match() {
+    // Collect values from input fields
+    const matchId = document.getElementById("matchId").value;
+    const matchPlayer1Name = document.getElementById("matchPlayer1Name").value;
+    const matchPlayer2Name = document.getElementById("matchPlayer2Name").value;
+    const matchType = document.getElementById("matchType").value;
+
+    // Construct the request body as JSON
+    const requestBody = {
+        player1_name: matchPlayer1Name,
+        player2_name: matchPlayer2Name,
+        match_type: matchType
+    };
+
+    // Send a POST request to the FastAPI backend
+    const response = await fetch(`/match/${matchId}`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json' // Specify that the request body is JSON
+        },
+        body: JSON.stringify(requestBody) // Convert the request body to JSON format
+    });
+
+    // Parse the response JSON
+    const data = await response.json();
+
+    // Display the response message
+    alert(data.message);
+}

@@ -1,5 +1,5 @@
 import re
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, HTTPException
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
@@ -7,7 +7,7 @@ from pydantic import BaseModel
 app = FastAPI()
 
 # Mount the directory containing index.html as a static directory
-# app.mount("/", StaticFiles(directory="templates", html=True), name="static")
+app.mount("/static", StaticFiles(directory="templates", html=True), name="static")
 
 matches = {1:{}}
 
@@ -108,15 +108,14 @@ def add_leg(player1_name: str, player2_name: str):
 def test(id):
     return {"test_id": id}
 
-@app.post("/match/{player1_name}/{player2_name}/{type}") #Operational
-def start_match(player1_name: str, player2_name: str, type: int):
-    match = Match(player1_name, player2_name, type)
-    match_id = player1_name+player2_name+str(type)
+@app.post("/match/{match_id}/{player1_name}/{player2_name}/{match_type}")
+async def start_match(match_id: int ,player1_name: str, player2_name: str, match_type: int):
+    match = Match(player1_name, player2_name, match_type)
     if match_id in matches:
-        return {"Match already exists"}
+        raise HTTPException(status_code=400, detail="Match already exists")
     else:
         matches[match_id] = match
-    return {"message": "{type} Match started {player1_name} vs {player2_name}!",
+    return {"message": f"{match_type} Match started {player1_name} vs {player2_name}!",
             "match": matches[match_id]}
 
 @app.get("/get_match/{match_id}") #Operational
