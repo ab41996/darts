@@ -3,13 +3,23 @@ from fastapi import FastAPI, Request, HTTPException
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
+import sqlite3
 
 app = FastAPI()
 
 # Mount the directory containing index.html as a static directory
 app.mount("/static", StaticFiles(directory="templates", html=True), name="static")
 
+# Connect to SQLite database
+conn = sqlite3.connect('matches.db')
+c = conn.cursor()
+
+# Create tables if they don't exist
+c.execute('''CREATE TABLE IF NOT EXISTS matches
+             (id INTEGER PRIMARY KEY, player1_name TEXT, player2_name TEXT, match_type INTEGER)''')
+
 matches = {1:{}}
+
 
 class Throw:
     def __init__(self, player_name, base_number, multiplier):
@@ -70,22 +80,11 @@ class Leg:
         print(f"Scores on the doors.. {self.player1_name}: {self.player1_score}, {self.player2_name}: {self.player2_score}")
 
 
-class Match():
-    def __init__(self, player1_name, player2_name, type):
-        self.player1_name = player1_name
-        self.player2_name = player2_name
-        self.type = type
-        self.legs = []
-        self.winner = ""
+class Match(BaseModel):
+    player1_name: str
+    player2_name: str
+    match_type: int
 
-    def add_leg(self, leg):
-        if leg.player1_name == self.player1_name:
-            if leg.player2_name == self.player2_name:
-                self.legs.append(leg)
-            else:
-                raise ValueError(f"Invalid player: {leg.player2_name}")
-        else:
-            raise ValueError(f"Invalid player: {leg.player1_name}")
 
 @app.post("/throw/{player_name}")
 def add_throw(player_name: str, throw_input: str):
@@ -108,19 +107,23 @@ def add_leg(player1_name: str, player2_name: str):
 def test(id):
     return {"test_id": id}
 
-@app.post("/match/{match_id}/{player1_name}/{player2_name}/{match_type}")
-async def start_match(match_id: int ,player1_name: str, player2_name: str, match_type: int):
-    match = Match(player1_name, player2_name, match_type)
-    if match_id in matches:
-        raise HTTPException(status_code=400, detail="Match already exists")
-    else:
-        matches[match_id] = match
-    return {"message": f"{match_type} Match started {player1_name} vs {player2_name}!",
-            "match": matches[match_id]}
+@app.post("/match/")
+async def start_match(match: Match):
+    c.execute("INSERT INTO matches (player1_name, player2_name, match_type) VALUES (?, ?, ?)",
+              (match.player1_name, match.player2_name, match.match_type))
+    conn.commit()
+    match_id = c.lastrowid
+    return {"message": f"Match started {match.player1_name} vs {match.player2_name}!", "match_id": match_id}
 
-@app.get("/get_match/{match_id}") #Operational
-def get_match(match_id: str):
-    return matches[match_id]
+@app.get("/match/{match_id}")
+async def get_match(match_id: int):
+    c.execute("SELECT * FROM matches WHERE id = ?", (match_id,))
+    match = c.fetchone()
+    if match:
+        return {"match_id": match[0], "player1_name": match[1], "player2_name": match[2], "match_type": match[3]}
+    else:
+        raise HTTPException(status_code=404, detail="Match not found")
+
         
 
 # Interactive section below!!

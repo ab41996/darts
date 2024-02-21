@@ -3,84 +3,50 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Darts Game</title>
+    <title>Start Match Form</title>
 </head>
 <body>
-    <h1>Darts Game</h1>
-    <h2>Add Throw</h2>
-    <label for="playerName">Player Name:</label>
-    <input type="text" id="playerName" name="playerName"><br><br>
-    <label for="throwInput">Throw Input:</label>
-    <input type="text" id="throwInput" name="throwInput"><br><br>
-    <button onclick="addThrow()">Add Throw</button>
-    
-    <h2>Start Visit</h2>
-    <label for="visitPlayerName">Player Name:</label>
-    <input type="text" id="visitPlayerName" name="visitPlayerName"><br><br>
-    <button onclick="startVisit()">Start Visit</button>
-
-    <h2>Start Leg</h2>
-    <label for="legPlayer1Name">Player 1 Name:</label>
-    <input type="text" id="legPlayer1Name" name="legPlayer1Name"><br><br>
-    <label for="legPlayer2Name">Player 2 Name:</label>
-    <input type="text" id="legPlayer2Name" name="legPlayer2Name"><br><br>
-    <button onclick="startLeg()">Start Leg</button>
-
     <h2>Start Match</h2>
-    <label for="matchId">Match ID:</label>
-    <input type="text" id="matchId" name="matchId"><br><br>
-    <label for="matchPlayer1Name">Player 1 Name:</label>
-    <input type="text" id="matchPlayer1Name" name="matchPlayer1Name"><br><br>
-    <label for="matchPlayer2Name">Player 2 Name:</label>
-    <input type="text" id="matchPlayer2Name" name="matchPlayer2Name"><br><br>
-    <label for="matchType">Match Type:</label>
-    <input type="text" id="matchType" name="matchType"><br><br>
-    <button onclick="start_match()">Start Match</button>
+    <form id="matchForm" method="post" onsubmit="submitForm(event)">
+
+        <label for="player1_name">Player 1 Name:</label><br>
+        <input type="text" id="player1_name" name="player1_name"><br>
+
+        <label for="player2_name">Player 2 Name:</label><br>
+        <input type="text" id="player2_name" name="player2_name"><br>
+
+        <label for="match_type">Match Type:</label><br>
+        <input type="int" id="match_type" name="match_type"><br>
+
+        </select><br>
+
+        <button type="submit">Start Match</button>
+    </form>
 
     <script>
-        async function addThrow() {
-            const playerName = document.getElementById("playerName").value;
-            const throwInput = document.getElementById("throwInput").value;
-            const response = await fetch(`/throw/${playerName}`, {
+        async function submitForm(event) {
+            event.preventDefault();
+
+            const formData = new FormData(document.getElementById('matchForm'));
+            const jsonData = {};
+            formData.forEach((value, key) => {
+                jsonData[key] = value;
+            });
+
+            const response = await fetch('/match/', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({ throwInput: throwInput })
+                body: JSON.stringify(jsonData)
             });
-            const data = await response.json();
-            alert(data.message);
-        }
 
-        async function startVisit() {
-            const visitPlayerName = document.getElementById("visitPlayerName").value;
-            const response = await fetch(`/visit/${visitPlayerName}`, {
-                method: 'POST'
-            });
-            const data = await response.json();
-            alert(data.message);
-        }
-
-        async function startLeg() {
-            const legPlayer1Name = document.getElementById("legPlayer1Name").value;
-            const legPlayer2Name = document.getElementById("legPlayer2Name").value;
-            const response = await fetch(`/leg/${legPlayer1Name}/${legPlayer2Name}`, {
-                method: 'POST'
-            });
-            const data = await response.json();
-            alert(data.message);
-        }
-
-        async function start_match() {
-            const matchId = document.getElementById("matchId").value;
-            const matchPlayer1Name = document.getElementById("matchPlayer1Name").value;
-            const matchPlayer2Name = document.getElementById("matchPlayer2Name").value;
-            const matchType = document.getElementById("matchType").value;
-            const response = await fetch(`/match/${matchId}/${matchPlayer1Name}/${matchPlayer2Name}/${matchType}`, {
-                method: 'POST'
-            });
-            const data = await response.json();
-            alert(data.message);
+            if (response.ok) {
+                const data = await response.json();
+                alert(data.message);
+            } else {
+                alert('Failed to start match');
+            }
         }
     </script>
 </body>
