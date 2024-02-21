@@ -2,7 +2,7 @@ import re
 from fastapi import FastAPI, Request, HTTPException
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, validator
 import sqlite3
 
 app = FastAPI()
@@ -11,33 +11,54 @@ app = FastAPI()
 app.mount("/static", StaticFiles(directory="templates", html=True), name="static")
 
 # Connect to SQLite database
-conn = sqlite3.connect('matches.db')
+conn = sqlite3.connect('darts.db')
 c = conn.cursor()
 
 # Create tables if they don't exist
 c.execute('''CREATE TABLE IF NOT EXISTS matches
              (id INTEGER PRIMARY KEY, player1_name TEXT, player2_name TEXT, match_type INTEGER)''')
 
+# Create tables if they don't exist
+c.execute('''CREATE TABLE IF NOT EXISTS throws
+             (id INTEGER PRIMARY KEY, match_id INTEGER, player_name TEXT, base_number INTEGER, multiplier TEXT, score INTEGER)''')
+
 matches = {1:{}}
 
 
-class Throw:
-    def __init__(self, player_name, base_number, multiplier):
-        self.player_name = player_name
-        self.base_number = base_number
-        self.multiplier = multiplier
-        self.score = base_number * multiplier
+class Throw(BaseModel):
+    player_name: str
+    throw_input: str
+    
+    # base_number: int = Field(..., ge=1)
+    # multiplier: str = Field(..., pattern="^[sdt]$")  # Accepts "s", "d", or "t"
+    # score: int = Field(..., ge=0)
 
-        if self.score is not None:
-            print(f"{self.player_name} scored {self.score}")
+    # @validator("base_number", pre=True)
+    # def extract_base_number(cls, v, values):
+    #     throw_input = values.get("throw_input")
+    #     try:
+    #         base_number = int(throw_input[1:])  # Extract digits after "d"
+    #     except ValueError:
+    #         raise ValueError("Invalid throw input format")
+    #     return base_number
 
-    @classmethod
-    def from_input(cls, player_name, throw_input):
-        letters = ''.join(re.findall(r'[a-zA-Z]', throw_input))
-        numbers = int(''.join(re.findall(r'[0-9]', throw_input)))
-        base_number = numbers
-        multiplier = {"": 1, "d": 2, "t": 3, "D": 2, "T": 3}[letters]
-        return cls(player_name, base_number, multiplier)
+    # @validator("multiplier", pre=True)
+    # def extract_multiplier(cls, v, values):
+    #     throw_input = values.get("throw_input")
+    #     if throw_input[0] not in ("s", "d", "t"):
+    #         raise ValueError("Invalid throw input format")
+    #     return throw_input[0]
+
+    # @validator("score", pre=True)
+    # def calculate_score(cls, v, values):
+    #     multiplier = values.get("multiplier")
+    #     base_number = values.get("base_number")
+    #     if multiplier == "d":
+    #         return base_number * 2
+    #     elif multiplier == "t":
+    #         return base_number * 3
+    #     else:
+    #         return base_number
 
 
 class Visit:
@@ -91,40 +112,48 @@ def add_throw(player_name: str, throw_input: str):
     throw = Throw.from_input(player_name, throw_input)
     return {"message": f"{player_name} scored {throw.score}"}
 
-
-@app.post("/visit/{player_name}")
-def add_visit(player_name: str):
-    visit = Visit(player_name)
-    return {"message": f"{player_name} is up!!"}
-
-
-@app.post("/leg/{player1_name}/{player2_name}")
-def add_leg(player1_name: str, player2_name: str):
-    leg = Leg(player1_name, player2_name)
-    return {"message": f"{player1_name} vs {player2_name}!! Let's Gooo!!"}
-
-@app.get('/test/{id}')
-def test(id):
-    return {"test_id": id}
-
 @app.post("/match/")
 async def start_match(match: Match):
     c.execute("INSERT INTO matches (player1_name, player2_name, match_type) VALUES (?, ?, ?)",
               (match.player1_name, match.player2_name, match.match_type))
     conn.commit()
     match_id = c.lastrowid
-    return {"message": f"Match started {match.player1_name} vs {match.player2_name}!", "match_id": match_id}
+    return {"message": f"Match {match_id} started {match.player1_name} vs {match.player2_name}!", "match_id": match_id}
 
-@app.get("/match/{match_id}")
-async def get_match(match_id: int):
-    c.execute("SELECT * FROM matches WHERE id = ?", (match_id,))
-    match = c.fetchone()
-    if match:
-        return {"match_id": match[0], "player1_name": match[1], "player2_name": match[2], "match_type": match[3]}
+@app.post("/match/{match_id}/throws")
+async def submit_throw(match_id: int, throw: Throw):
+    # Extract values from the throw input
+    try:
+        multiplier = throw.throw_input[0]
+        base_number = int(throw.throw_input[1:])
+    except (IndexError, ValueError):
+        raise HTTPException(status_code=400, detail="Invalid throw input format")
+    
+    # Calculate the score based on the multiplier
+    if multiplier == 'd':
+        score = base_number * 2
+    elif multiplier == 't':
+        score = base_number * 3
+    elif type(multiplier) == int:
+        base_number = throw.throw_input * 1
+        score = base_number
+        multiplier = "s"
     else:
-        raise HTTPException(status_code=404, detail="Match not found")
-
-        
+        raise HTTPException(status_code=400, detail="Invalid multiplier")
+    
+    # Insert the throw data into the database
+    c.execute("INSERT INTO throws (match_id, player_name, base_number, multiplier, score) VALUES (?, ?, ?, ?, ?)",
+              (match_id, throw.player_name, base_number, multiplier, score))
+    conn.commit()
+    
+    # Get the ID of the last inserted row
+    throw_id = c.lastrowid
+    
+    # Return a success message
+    return {
+        "message": f"Throw {throw_id} submitted by {throw.player_name} scored {score}!",
+        "match_id": match_id
+    }
 
 # Interactive section below!!
 

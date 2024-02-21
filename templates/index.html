@@ -7,7 +7,7 @@
 </head>
 <body>
     <h2>Start Match</h2>
-    <form id="matchForm" method="post" onsubmit="submitForm(event)">
+    <form id="matchForm" method="post" onsubmit="submitMatchForm(event)">
 
         <label for="player1_name">Player 1 Name:</label><br>
         <input type="text" id="player1_name" name="player1_name"><br>
@@ -16,15 +16,15 @@
         <input type="text" id="player2_name" name="player2_name"><br>
 
         <label for="match_type">Match Type:</label><br>
-        <input type="int" id="match_type" name="match_type"><br>
-
-        </select><br>
+        <input type="text" id="match_type" name="match_type"><br>
 
         <button type="submit">Start Match</button>
     </form>
 
+    <div id="throwFormContainer"></div>
+
     <script>
-        async function submitForm(event) {
+        async function submitMatchForm(event) {
             event.preventDefault();
 
             const formData = new FormData(document.getElementById('matchForm'));
@@ -43,9 +43,55 @@
 
             if (response.ok) {
                 const data = await response.json();
+                console.log("Match creation response:", data); 
                 alert(data.message);
+                const matchId = data.match_id;
+                showThrowForm(matchId); // Call function to show throw submission form
             } else {
                 alert('Failed to start match');
+            }
+        }
+
+        function showThrowForm(matchId) {
+            console.log("matchId:", matchId); // Debugging statement
+            const throwFormContainer = document.getElementById('throwFormContainer');
+            throwFormContainer.innerHTML = `
+                <h2>Submit Throw</h2>
+                <form id="throwForm" method="post" onsubmit="submitThrowForm(event, '${matchId}')">
+
+                    <label for="player_name">Player:</label><br>
+                    <input type="text" id="player_name" name="player_name"><br>
+
+                    <label for="throw_input">Throw Input: e.g. d20</label><br>
+                    <input type="text" id="throw_input" name="throw_input"><br>
+
+                    <button type="submit">Submit Throw</button>
+                </form>
+            `;
+        }
+
+        async function submitThrowForm(event, matchId) {
+            event.preventDefault();
+
+            const formData = new FormData(document.getElementById('throwForm'));
+            const jsonData = {};
+            formData.forEach((value, key) => {
+                jsonData[key] = value;
+            });
+
+            const response = await fetch('/match/${matchId}/throws', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(jsonData)
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                alert(data.message);
+            } else {
+                alert('Failed to submit throw');
             }
         }
     </script>
