@@ -85,33 +85,3 @@
     </script>
 </body>
 </html>
-
-async function start_match() {
-    // Collect values from input fields
-    const matchId = document.getElementById("matchId").value;
-    const matchPlayer1Name = document.getElementById("matchPlayer1Name").value;
-    const matchPlayer2Name = document.getElementById("matchPlayer2Name").value;
-    const matchType = document.getElementById("matchType").value;
-
-    // Construct the request body as JSON
-    const requestBody = {
-        player1_name: matchPlayer1Name,
-        player2_name: matchPlayer2Name,
-        match_type: matchType
-    };
-
-    // Send a POST request to the FastAPI backend
-    const response = await fetch(`/match/${matchId}`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json' // Specify that the request body is JSON
-        },
-        body: JSON.stringify(requestBody) // Convert the request body to JSON format
-    });
-
-    // Parse the response JSON
-    const data = await response.json();
-
-    // Display the response message
-    alert(data.message);
-}
