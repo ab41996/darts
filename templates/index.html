@@ -79,7 +79,7 @@
                 jsonData[key] = value;
             });
 
-            const response = await fetch('/match/${matchId}/throws', {
+            const response = await fetch(`/match/${matchId}/throws`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
