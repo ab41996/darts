@@ -46,54 +46,61 @@
                 console.log("Match creation response:", data); 
                 alert(data.message);
                 const matchId = data.match_id;
-                showThrowForm(matchId); // Call function to show throw submission form
+                const player1Name = data.player1_name;
+                const player2Name = data.player2_name;
+                showThrowForms(player1Name, player2Name, matchId); // Call function to show throw submission form
+
             } else {
                 alert('Failed to start match');
             }
         }
 
-        function showThrowForm(matchId) {
-            console.log("matchId:", matchId); // Debugging statement
-            const throwFormContainer = document.getElementById('throwFormContainer');
-            throwFormContainer.innerHTML = `
-                <h2>Submit Throw</h2>
-                <form id="throwForm" method="post" onsubmit="submitThrowForm(event, '${matchId}')">
+        function showThrowForms(player1Name, player2Name, matchId) {
+    const throwFormContainer = document.getElementById('throwFormContainer');
+    throwFormContainer.innerHTML = `
+        <h2>Submit ${player1Name} Throw</h2>
+        <form id="throwFormPlayer1" method="post" onsubmit="submitThrowForm(event, '${matchId}', '${player1Name}')">
+            <input type="hidden" id="player_name_player1" name="player_name" value="${player1Name}">
+            <label for="throw_input_player1">Throw Input: e.g. d20</label><br>
+            <input type="text" id="throw_input_player1" name="throw_input"><br>
+            <button type="submit">Submit Throw</button>
+        </form>
+        <h2>Submit ${player2Name} Throw</h2>
+        <form id="throwFormPlayer2" method="post" onsubmit="submitThrowForm(event, '${matchId}', '${player2Name}')">
+            <input type="hidden" id="player_name_player2" name="player_name" value="${player2Name}">
+            <label for="throw_input_player2">Throw Input: e.g. d20</label><br>
+            <input type="text" id="throw_input_player2" name="throw_input"><br>
+            <button type="submit">Submit Throw</button>
+        </form>
+    `;
+}
 
-                    <label for="player_name">Player:</label><br>
-                    <input type="text" id="player_name" name="player_name"><br>
+    async function submitThrowForm(event, matchId, playerName) {
+        event.preventDefault();
 
-                    <label for="throw_input">Throw Input: e.g. d20</label><br>
-                    <input type="text" id="throw_input" name="throw_input"><br>
+        // Get the correct form based on which form is being submitted
+        const formData = new FormData(event.target);
 
-                    <button type="submit">Submit Throw</button>
-                </form>
-            `;
+        const jsonData = {};
+        formData.forEach((value, key) => {
+            jsonData[key] = value;
+        });
+
+        const response = await fetch(`/match/${matchId}/throws`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(jsonData)
+        });
+
+        if (response.ok) {
+            const data = await response.json();
+            alert(data.message);
+        } else {
+            alert('Failed to submit throw');
         }
-
-        async function submitThrowForm(event, matchId) {
-            event.preventDefault();
-
-            const formData = new FormData(document.getElementById('throwForm'));
-            const jsonData = {};
-            formData.forEach((value, key) => {
-                jsonData[key] = value;
-            });
-
-            const response = await fetch(`/match/${matchId}/throws`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(jsonData)
-            });
-
-            if (response.ok) {
-                const data = await response.json();
-                alert(data.message);
-            } else {
-                alert('Failed to submit throw');
-            }
-        }
+    }
     </script>
 </body>
 </html>

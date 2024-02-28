@@ -118,7 +118,12 @@ async def start_match(match: Match):
               (match.player1_name, match.player2_name, match.match_type))
     conn.commit()
     match_id = c.lastrowid
-    return {"message": f"Match {match_id} started {match.player1_name} vs {match.player2_name}!", "match_id": match_id}
+    return {
+        "message": f"Match {match_id} started {match.player1_name} vs {match.player2_name}!",
+        "match_id": match_id,
+        "player1_name": match.player1_name,
+        "player2_name": match.player2_name,
+    }
 
 @app.post("/match/{match_id}/throws")
 async def submit_throw(match_id: int, throw: Throw):
