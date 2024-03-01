@@ -22,7 +22,11 @@ c.execute('''CREATE TABLE IF NOT EXISTS matches
 c.execute('''CREATE TABLE IF NOT EXISTS throws
              (id INTEGER PRIMARY KEY, match_id INTEGER, player_name TEXT, base_number INTEGER, multiplier TEXT, score INTEGER)''')
 
-matches = {1:{}}
+c.execute('''CREATE TABLE IF NOT EXISTS visits
+             (id INTEGER PRIMARY KEY, match_id INTEGER, player_name TEXT, score INTEGER)''')
+
+# Dictionary to store active matches
+active_matches = {}
 
 
 class Throw(BaseModel):
@@ -106,27 +110,46 @@ class Match(BaseModel):
     player2_name: str
     match_type: int
 
-
-@app.post("/throw/{player_name}")
-def add_throw(player_name: str, throw_input: str):
-    throw = Throw.from_input(player_name, throw_input)
-    return {"message": f"{player_name} scored {throw.score}"}
-
 @app.post("/match/")
 async def start_match(match: Match):
     c.execute("INSERT INTO matches (player1_name, player2_name, match_type) VALUES (?, ?, ?)",
               (match.player1_name, match.player2_name, match.match_type))
     conn.commit()
     match_id = c.lastrowid
+
+    active_matches[match_id] = {
+        "player1_name": match.player1_name, 
+        "player2_name": match.player2_name, 
+        "match_type": match.match_type,
+        "thrower": match.player1_name,
+        "throws": 0
+    }
+    
+    print(active_matches)
+
     return {
         "message": f"Match {match_id} started {match.player1_name} vs {match.player2_name}!",
         "match_id": match_id,
         "player1_name": match.player1_name,
         "player2_name": match.player2_name,
+        "match_type": match.match_type
     }
+    
 
 @app.post("/match/{match_id}/throws")
 async def submit_throw(match_id: int, throw: Throw):
+    # Check if match exists
+    if match_id not in active_matches:
+        raise HTTPException(status_code=404, detail="Match not found")
+
+    # Check if the player exists in the match
+    if throw.player_name not in (active_matches[match_id]["player1_name"], active_matches[match_id]["player2_name"]):
+        raise HTTPException(status_code=400, detail="Invalid player")
+
+    # Check if it's the player's turn to throw
+    if throw.player_name != active_matches[match_id]["thrower"]:
+        raise HTTPException(status_code=400, detail="It's not your turn to throw yet")
+
     # Extract values from the throw input
     try:
         multiplier = throw.throw_input[0]
@@ -153,6 +176,17 @@ async def submit_throw(match_id: int, throw: Throw):
     
     # Get the ID of the last inserted row
     throw_id = c.lastrowid
+
+    # Update throw number
+    active_matches[match_id]["throws"] += 1
+
+    # Switch thrower
+    if active_matches[match_id]["throws"] >=3:
+        active_matches[match_id]["throws"] = 0
+        if active_matches[match_id]["thrower"] == active_matches[match_id]["player1_name"]:
+            active_matches[match_id]["thrower"] = active_matches[match_id]["player2_name"]
+        else:
+            active_matches[match_id]["thrower"] = active_matches[match_id]["player1_name"]
     
     # Return a success message
     return {

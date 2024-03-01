@@ -104,7 +104,7 @@
             if (response.ok) {
                 const data = await response.json();
                 displayMessage(data.message);
-            } else {
+            } else { //can we make this show its not your turn 
                 displayMessage('Failed to submit throw');
             }
         }
