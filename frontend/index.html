@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Start Match Form</title>
+</head>
+<body>
+    <h1>Ping Hello World</h1>
+    <button onclick="pingHelloWorld()">Ping Hello World</button>
+    <div id="response"></div>
+  
+    <script>
+      function pingHelloWorld() {
+      fetch('/api/hello', {
+          method: 'POST',
+          headers: {
+          'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ message: 'Hello, World!' })
+      })
+      .then(response => response.text())
+      .then(data => {
+          document.getElementById('response').textContent = data;
+      })
+      .catch(error => {
+          document.getElementById('response').textContent = 'Error: ' + error;
+      });
+      }
+    </script>
+  </body>
+<body>
+    <h2>Start Match</h2>
+    <form id="matchForm" method="post" onsubmit="submitMatchForm(event)">
+
+        <label for="player1_name">Player 1 Name:</label><br>
+        <input type="text" id="player1_name" name="player1_name"><br>
+
+        <label for="player2_name">Player 2 Name:</label><br>
+        <input type="text" id="player2_name" name="player2_name"><br>
+
+        <label for="match_type">Match Type:</label><br>
+        <input type="text" id="match_type" name="match_type"><br>
+
+        <button type="submit">Start Match</button>
+    </form>
+
+    <div id="throwFormContainer"></div>
+
+    <script>
+        async function submitMatchForm(event) {
+            event.preventDefault();
+
+            const formData = new FormData(document.getElementById('matchForm'));
+            const jsonData = {};
+            formData.forEach((value, key) => {
+                jsonData[key] = value;
+            });
+
+            const response = await fetch('api/match/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(jsonData)
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                console.log("Match creation response:", data); 
+                alert(data.message);
+                const matchId = data.match_id;
+                const player1Name = data.player1_name;
+                const player2Name = data.player2_name;
+                showThrowForms(player1Name, player2Name, matchId); // Call function to show throw submission form
+
+            } else {
+                alert('Failed to start match');
+            }
+        }
+
+        function showThrowForms(player1Name, player2Name, matchId) {
+    const throwFormContainer = document.getElementById('throwFormContainer');
+    throwFormContainer.innerHTML = `
+        <h2>Submit ${player1Name} Throw</h2>
+        <form id="throwFormPlayer1" method="post" onsubmit="submitThrowForm(event, '${matchId}', '${player1Name}')">
+            <input type="hidden" id="player_name_player1" name="player_name" value="${player1Name}">
+            <label for="throw_input_player1">Throw Input: e.g. d20</label><br>
+            <input type="text" id="throw_input_player1" name="throw_input"><br>
+            <button type="submit">Submit Throw</button>
+        </form>
+        <h2>Submit ${player2Name} Throw</h2>
+        <form id="throwFormPlayer2" method="post" onsubmit="submitThrowForm(event, '${matchId}', '${player2Name}')">
+            <input type="hidden" id="player_name_player2" name="player_name" value="${player2Name}">
+            <label for="throw_input_player2">Throw Input: e.g. d20</label><br>
+            <input type="text" id="throw_input_player2" name="throw_input"><br>
+            <button type="submit">Submit Throw</button>
+        </form>
+    `;
+}
+
+    async function submitThrowForm(event, matchId, playerName) {
+        event.preventDefault();
+
+        // Get the correct form based on which form is being submitted
+        const formData = new FormData(event.target);
+
+        const jsonData = {};
+        formData.forEach((value, key) => {
+            jsonData[key] = value;
+        });
+
+        const response = await fetch(`api/match/${matchId}/throws`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(jsonData)
+        });
+
+        if (response.ok) {
+            const data = await response.json();
+            alert(data.message);
+        } else {
+            alert('Failed to submit throw');
+        }
+    }
+    </script>
+</body>
+</html>

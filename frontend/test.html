@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Ping Hello World</title>
+</head>
+<body>
+  <h1>Ping Hello World</h1>
+  <button onclick="pingHelloWorld()">Ping Hello World</button>
+  <div id="response"></div>
+
+  <script>
+    function pingHelloWorld() {
+    fetch('/api/hello', {
+        method: 'POST',
+        headers: {
+        'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ message: 'Hello, World!' })
+    })
+    .then(response => response.text())
+    .then(data => {
+        document.getElementById('response').textContent = data;
+    })
+    .catch(error => {
+        document.getElementById('response').textContent = 'Error: ' + error;
+    });
+    }
+  </script>
+</body>
+</html>
