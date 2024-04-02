@@ -6,6 +6,30 @@
     <title>Start Match Form</title>
 </head>
 <body>
+    <h1>Ping Hello World</h1>
+    <button onclick="pingHelloWorld()">Ping Hello World</button>
+    <div id="response"></div>
+  
+    <script>
+      function pingHelloWorld() {
+      fetch('/api/hello', {
+          method: 'POST',
+          headers: {
+          'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ message: 'Hello, World!' })
+      })
+      .then(response => response.text())
+      .then(data => {
+          document.getElementById('response').textContent = data;
+      })
+      .catch(error => {
+          document.getElementById('response').textContent = 'Error: ' + error;
+      });
+      }
+    </script>
+  </body>
+<body>
     <h2>Start Match</h2>
     <form id="matchForm" method="post" onsubmit="submitMatchForm(event)">
 
@@ -33,7 +57,7 @@
                 jsonData[key] = value;
             });
 
-            const response = await fetch('/match/', {
+            const response = await fetch('api/match/', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -86,7 +110,7 @@
             jsonData[key] = value;
         });
 
-        const response = await fetch(`/match/${matchId}/throws`, {
+        const response = await fetch(`api/match/${matchId}/throws`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'

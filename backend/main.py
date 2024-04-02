@@ -7,8 +7,8 @@ import sqlite3
 
 app = FastAPI()
 
-# Mount the directory containing index.html as a static directory
-app.mount("/static", StaticFiles(directory="templates", html=True), name="static")
+# # Mount the directory containing index.html as a static directory
+# app.mount("/static", StaticFiles(directory="templates", html=True), name="static")
 
 # Connect to SQLite database
 conn = sqlite3.connect('darts.db')
@@ -159,6 +159,10 @@ async def submit_throw(match_id: int, throw: Throw):
         "message": f"Throw {throw_id} submitted by {throw.player_name} scored {score}!",
         "match_id": match_id
     }
+
+@app.post("/hello")
+def hello():
+    return {"message": "Hello World"}
 
 # Interactive section below!!
 
